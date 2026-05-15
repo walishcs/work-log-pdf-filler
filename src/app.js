@@ -6,6 +6,18 @@ const PAGE = {
 };
 
 const STORAGE_KEY = "work-log-pdf-filler:v1";
+const FONT_STACK = '"BiauKai", "DFKai-SB", "KaiTi", "KaiTi TC", "STKaiti", "Kaiti TC", "PMingLiU", "MingLiU", serif';
+
+const DEFAULT_VALUES = {
+  superior: "無",
+  handover: "無",
+  morningWork: "- 櫃檯勤務",
+  morningArrive: "07:50",
+  morningLeave: "12:00",
+  afternoonWork: "- 櫃檯勤務",
+  afternoonArrive: "13:00",
+  afternoonLeave: "16:50",
+};
 
 const weekdayNames = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -13,39 +25,32 @@ const fieldGroups = [
   {
     title: "基本資料",
     fields: [
-      { id: "name", label: "執勤役男", type: "text", persist: true, draw: { x: 154, y: 480, w: 392, h: 70, size: 38, align: "center" } },
+      { id: "name", label: "執勤役男", type: "text", persist: true, draw: { x: 154, y: 490, w: 392, h: 70, size: 60, align: "center" } },
       { id: "date", label: "日期", type: "date", persist: false },
+      { id: "noonDuty", label: "中午值班", type: "checkbox", persist: false },
     ],
   },
   {
     title: "指示與交接",
     fields: [
-      { id: "superior", label: "上級指示", type: "textarea", persist: false, draw: { x: 595, y: 595, w: 880, h: 84, size: 34, lineHeight: 45 } },
-      { id: "handover", label: "交接事項", type: "textarea", persist: false, draw: { x: 595, y: 728, w: 880, h: 80, size: 34, lineHeight: 45 } },
+      { id: "superior", label: "上級指示", type: "textarea", persist: false, draw: { x: 595, y: 595, w: 880, h: 84, size: 40, lineHeight: 50 } },
+      { id: "handover", label: "交接事項", type: "textarea", persist: false, draw: { x: 595, y: 728, w: 880, h: 80, size: 40, lineHeight: 50 } },
     ],
   },
   {
     title: "工作內容（上午）",
     fields: [
-      { id: "morningWork", label: "上午工作內容", type: "textarea", persist: false, draw: { x: 168, y: 996, w: 930, h: 280, size: 32, lineHeight: 43 } },
-      { id: "morningArrive", label: "上午到勤時間", type: "time", persist: true, drawTime: { hour: [1215, 953], minute: [1374, 953] } },
-      { id: "morningLeave", label: "上午離退時間", type: "time", persist: true, drawTime: { hour: [1215, 1238], minute: [1374, 1238] } },
+      { id: "morningWork", label: "上午工作內容", type: "textarea", persist: false, draw: { x: 168, y: 996, w: 930, h: 280, size: 48, lineHeight: 60 } },
+      { id: "morningArrive", label: "上午到勤時間", type: "time", persist: true, drawTime: { hour: [1215, 942], minute: [1374, 942] } },
+      { id: "morningLeave", label: "上午離退時間", type: "time", persist: true, drawTime: { hour: [1215, 1230], minute: [1374, 1230] } },
     ],
   },
   {
     title: "工作內容（下午）",
     fields: [
-      { id: "afternoonWork", label: "下午工作內容", type: "textarea", persist: false, draw: { x: 168, y: 1512, w: 930, h: 280, size: 32, lineHeight: 43 } },
-      { id: "afternoonArrive", label: "下午到勤時間", type: "time", persist: true, drawTime: { hour: [1215, 1474], minute: [1374, 1474] } },
-      { id: "afternoonLeave", label: "下午離退時間", type: "time", persist: true, drawTime: { hour: [1215, 1774], minute: [1374, 1774] } },
-    ],
-  },
-  {
-    title: "依序批示",
-    fields: [
-      { id: "manager", label: "管理人員", type: "text", persist: true, draw: { x: 165, y: 2000, w: 360, h: 76, size: 36, align: "center" } },
-      { id: "headNurse", label: "護理長", type: "text", persist: true, draw: { x: 600, y: 2000, w: 410, h: 76, size: 36, align: "center" } },
-      { id: "supervisor", label: "單位主管", type: "text", persist: true, draw: { x: 1080, y: 2000, w: 380, h: 76, size: 36, align: "center" } },
+      { id: "afternoonWork", label: "下午工作內容", type: "textarea", persist: false, draw: { x: 168, y: 1512, w: 930, h: 280, size: 48, lineHeight: 60 } },
+      { id: "afternoonArrive", label: "下午到勤時間", type: "time", persist: true, drawTime: { hour: [1215, 1462], minute: [1374, 1462] } },
+      { id: "afternoonLeave", label: "下午離退時間", type: "time", persist: true, drawTime: { hour: [1215, 1758], minute: [1374, 1758] } },
     ],
   },
 ];
@@ -58,12 +63,14 @@ const canvas = document.querySelector("#previewCanvas");
 const context = canvas.getContext("2d");
 const statusText = document.querySelector("#statusText");
 const downloadButton = document.querySelector("#downloadPdf");
+const printButton = document.querySelector("#printPdf");
 const clearDailyButton = document.querySelector("#clearDaily");
 
 const templateImage = new Image();
 const state = loadState();
 let renderRequested = false;
 
+applyDefaultValues();
 buildForm();
 setDateDefault();
 
@@ -76,50 +83,54 @@ templateImage.src = "./assets/template.png";
 form.addEventListener("input", (event) => {
   const target = event.target;
   if (!target.name) return;
-  state[target.name] = target.value;
+  state[target.name] = target.type === "checkbox" ? target.checked : target.value;
   savePersistentState();
   requestPreview();
 });
 
 downloadButton.addEventListener("click", async () => {
-  downloadButton.disabled = true;
+  setPdfButtonsDisabled(true);
   statusText.textContent = "正在產生 PDF";
 
   try {
-    renderPreview();
-    const pngBytes = await canvasToPngBytes(canvas);
-    const pdfDoc = await PDFLib.PDFDocument.create();
-    const page = pdfDoc.addPage([PAGE.pdfWidth, PAGE.pdfHeight]);
-    const image = await pdfDoc.embedPng(pngBytes);
-    page.drawImage(image, {
-      x: 0,
-      y: 0,
-      width: PAGE.pdfWidth,
-      height: PAGE.pdfHeight,
-    });
-
-    const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([pdfBytes], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = buildFileName();
-    anchor.click();
-    URL.revokeObjectURL(url);
+    const blob = await createPdfBlob();
+    downloadPdfBlob(blob);
     statusText.textContent = "PDF 已產生";
   } catch (error) {
     console.error(error);
     statusText.textContent = "PDF 產生失敗";
   } finally {
-    downloadButton.disabled = false;
+    setPdfButtonsDisabled(false);
+  }
+});
+
+printButton.addEventListener("click", async () => {
+  setPdfButtonsDisabled(true);
+  statusText.textContent = "正在準備列印";
+
+  try {
+    const blob = await createPdfBlob();
+    await printPdfBlob(blob);
+    statusText.textContent = "列印視窗已開啟";
+  } catch (error) {
+    console.error(error);
+    statusText.textContent = "列印 PDF 失敗";
+  } finally {
+    setPdfButtonsDisabled(false);
   }
 });
 
 clearDailyButton.addEventListener("click", () => {
   for (const id of dailyFieldIds) {
-    state[id] = "";
+    state[id] = id in DEFAULT_VALUES ? DEFAULT_VALUES[id] : "";
     const input = form.elements[id];
-    if (input) input.value = "";
+    if (input) {
+      if (input.type === "checkbox") {
+        input.checked = Boolean(state[id]);
+      } else {
+        input.value = state[id];
+      }
+    }
   }
   setDateDefault();
   requestPreview();
@@ -150,7 +161,7 @@ function buildForm() {
       const input = createInput(field);
       wrapper.append(label, input);
 
-      if (field.type === "text" || field.type === "date" || field.type === "time") {
+      if (field.type === "text" || field.type === "date" || field.type === "time" || field.type === "checkbox") {
         row.append(wrapper);
       } else {
         fieldset.append(wrapper);
@@ -167,6 +178,15 @@ function buildForm() {
 
 function createInput(field) {
   const value = state[field.id] ?? "";
+  if (field.type === "checkbox") {
+    const input = document.createElement("input");
+    input.id = field.id;
+    input.name = field.id;
+    input.type = "checkbox";
+    input.checked = Boolean(value);
+    return input;
+  }
+
   if (field.type === "textarea") {
     const textarea = document.createElement("textarea");
     textarea.id = field.id;
@@ -178,8 +198,13 @@ function createInput(field) {
   const input = document.createElement("input");
   input.id = field.id;
   input.name = field.id;
-  input.type = field.type;
+  input.type = field.type === "time" ? "text" : field.type;
   input.value = value;
+  if (field.type === "time") {
+    input.inputMode = "numeric";
+    input.pattern = "[0-2][0-9]:[0-5][0-9]";
+    input.placeholder = "HH:MM";
+  }
   return input;
 }
 
@@ -204,6 +229,8 @@ function renderPreview() {
   drawDate();
 
   for (const field of allFields) {
+    if (field.type === "checkbox") continue;
+
     const value = normalize(state[field.id]);
     if (!value || field.id === "date") continue;
 
@@ -212,7 +239,7 @@ function renderPreview() {
     }
 
     if (field.drawTime) {
-      drawTime(value, field.drawTime);
+      drawTime(getTimeDrawValue(field.id, value), field.drawTime);
     }
   }
 }
@@ -226,17 +253,26 @@ function drawDate() {
 
   const rocYear = String(date.getFullYear() - 1911);
   const month = String(date.getMonth() + 1);
+  const day = String(date.getDate());
   const weekday = weekdayNames[date.getDay()];
 
-  drawTextBox(rocYear, { x: 750, y: 516, w: 118, h: 48, size: 34, align: "center" });
-  drawTextBox(month, { x: 960, y: 516, w: 58, h: 48, size: 34, align: "center" });
-  drawTextBox(weekday, { x: 1284, y: 516, w: 70, h: 48, size: 34, align: "center" });
+  drawTextBox(rocYear, { x: 750, y: 510, w: 118, h: 48, size: 40, align: "center" });
+  drawTextBox(month, { x: 924, y: 510, w: 58, h: 48, size: 40, align: "center" });
+  drawTextBox(day, { x: 1055, y: 510, w: 58, h: 48, size: 40, align: "center" });
+  drawTextBox(weekday, { x: 1240, y: 510, w: 70, h: 48, size: 40, align: "center" });
 }
 
 function drawTime(value, position) {
   const [hour = "", minute = ""] = value.split(":");
   drawTextBox(hour, { x: position.hour[0], y: position.hour[1], w: 58, h: 48, size: 32, align: "center" });
   drawTextBox(minute, { x: position.minute[0], y: position.minute[1], w: 58, h: 48, size: 32, align: "center" });
+}
+
+function getTimeDrawValue(fieldId, value) {
+  if (state.noonDuty && (fieldId === "morningLeave" || fieldId === "afternoonArrive")) {
+    return "值:班";
+  }
+  return value;
 }
 
 function drawTextBox(text, options) {
@@ -255,7 +291,7 @@ function drawTextBox(text, options) {
   const visibleLines = lines.slice(0, maxLines);
   const startY = visibleLines.length === 1 ? y + h / 2 : y + lineHeight / 2;
 
-  context.font = `${size}px "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif`;
+  context.font = `${size}px ${FONT_STACK}`;
   context.textAlign = align;
 
   const drawX = align === "center" ? x + w / 2 : align === "right" ? x + w : x;
@@ -266,7 +302,7 @@ function drawTextBox(text, options) {
 }
 
 function wrapText(text, maxWidth, size) {
-  context.font = `${size}px "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif`;
+  context.font = `${size}px ${FONT_STACK}`;
   const rawLines = text.replace(/\r\n/g, "\n").split("\n");
   const lines = [];
 
@@ -285,6 +321,14 @@ function wrapText(text, maxWidth, size) {
   }
 
   return lines;
+}
+
+function applyDefaultValues() {
+  for (const [id, value] of Object.entries(DEFAULT_VALUES)) {
+    if (!state[id]) {
+      state[id] = value;
+    }
+  }
 }
 
 function setDateDefault() {
@@ -328,6 +372,90 @@ function buildFileName() {
   const name = normalize(state.name);
   const suffix = name ? `_${name}` : "";
   return `工作日誌_${date}${suffix}.pdf`;
+}
+
+async function createPdfBlob() {
+  renderPreview();
+  const pngBytes = await canvasToPngBytes(canvas);
+  const pdfDoc = await PDFLib.PDFDocument.create();
+  const page = pdfDoc.addPage([PAGE.pdfWidth, PAGE.pdfHeight]);
+  const image = await pdfDoc.embedPng(pngBytes);
+  page.drawImage(image, {
+    x: 0,
+    y: 0,
+    width: PAGE.pdfWidth,
+    height: PAGE.pdfHeight,
+  });
+
+  const pdfBytes = await pdfDoc.save();
+  return new Blob([pdfBytes], { type: "application/pdf" });
+}
+
+function downloadPdfBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = buildFileName();
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function printPdfBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const frame = document.createElement("iframe");
+    let settled = false;
+    let cleanupTimer;
+
+    const cleanup = () => {
+      window.clearTimeout(cleanupTimer);
+      cleanupTimer = window.setTimeout(() => {
+        frame.remove();
+        URL.revokeObjectURL(url);
+      }, 1000);
+    };
+
+    frame.className = "print-frame";
+    frame.title = "列印工作日誌 PDF";
+    frame.onload = () => {
+      try {
+        const frameWindow = frame.contentWindow;
+        if (!frameWindow) {
+          throw new Error("Print frame is unavailable");
+        }
+        frameWindow.addEventListener("afterprint", cleanup, { once: true });
+        cleanupTimer = window.setTimeout(cleanup, 60000);
+        frameWindow.focus();
+        setTimeout(() => {
+          frameWindow.print();
+          if (!settled) {
+            settled = true;
+            resolve();
+          }
+        }, 100);
+      } catch (error) {
+        if (!settled) {
+          settled = true;
+          cleanup();
+          reject(error);
+        }
+      }
+    };
+    frame.onerror = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error("Print frame failed to load"));
+    };
+
+    frame.src = url;
+    document.body.append(frame);
+  });
+}
+
+function setPdfButtonsDisabled(disabled) {
+  downloadButton.disabled = disabled;
+  printButton.disabled = disabled;
 }
 
 function canvasToPngBytes(sourceCanvas) {
