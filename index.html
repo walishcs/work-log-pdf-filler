@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>工作日誌填寫工具</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="form-pane" aria-label="工作日誌欄位">
+        <div class="toolbar">
+          <div>
+            <h1>工作日誌</h1>
+            <p>填寫欄位後下載壓平 PDF</p>
+          </div>
+          <button id="downloadPdf" type="button">下載 PDF</button>
+        </div>
+
+        <form id="logForm" autocomplete="on"></form>
+      </section>
+
+      <section class="preview-pane" aria-label="PDF 預覽">
+        <div class="preview-toolbar">
+          <span id="statusText">載入中</span>
+          <button id="clearDaily" type="button">清除每日欄位</button>
+        </div>
+        <div class="canvas-frame">
+          <canvas id="previewCanvas" width="1697" height="2400"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <script src="./assets/pdf-lib.min.js"></script>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
