@@ -25,38 +25,44 @@ const fieldGroups = [
   {
     title: "基本資料",
     fields: [
-      { id: "name", label: "執勤役男", type: "text", persist: true, draw: { x: 154, y: 490, w: 392, h: 70, size: 60, align: "center" } },
-      { id: "date", label: "日期", type: "date", persist: false },
+      { id: "name", label: "執勤役男", type: "text", persist: true, required: true, draw: { x: 154, y: 490, w: 392, h: 70, size: 60, align: "center" } },
+      { id: "date", label: "日期", type: "date", persist: false, required: true },
       { id: "noonDuty", label: "中午值班", type: "checkbox", persist: false },
     ],
   },
   {
     title: "指示與交接",
     fields: [
-      { id: "superior", label: "上級指示", type: "textarea", persist: false, draw: { x: 595, y: 595, w: 880, h: 84, size: 40, lineHeight: 50 } },
-      { id: "handover", label: "交接事項", type: "textarea", persist: false, draw: { x: 595, y: 728, w: 880, h: 80, size: 40, lineHeight: 50 } },
+      { id: "superior", label: "上級指示", type: "textarea", persist: false, required: true, draw: { x: 595, y: 595, w: 880, h: 84, size: 40, lineHeight: 50 } },
+      { id: "handover", label: "交接事項", type: "textarea", persist: false, required: true, draw: { x: 595, y: 728, w: 880, h: 80, size: 40, lineHeight: 50 } },
     ],
   },
   {
     title: "工作內容（上午）",
     fields: [
-      { id: "morningWork", label: "上午工作內容", type: "textarea", persist: false, draw: { x: 168, y: 996, w: 930, h: 280, size: 48, lineHeight: 60 } },
-      { id: "morningArrive", label: "上午到勤時間", type: "time", persist: true, drawTime: { hour: [1215, 942], minute: [1374, 942] } },
-      { id: "morningLeave", label: "上午離退時間", type: "time", persist: true, drawTime: { hour: [1215, 1230], minute: [1374, 1230] } },
+      { id: "morningWork", label: "上午工作內容", type: "textarea", persist: false, required: true, draw: { x: 168, y: 996, w: 930, h: 280, size: 48, lineHeight: 60 } },
+      { id: "morningArrive", label: "上午到勤時間", type: "time", persist: true, required: true, drawTime: { hour: [1215, 942], minute: [1374, 942] } },
+      { id: "morningLeave", label: "上午離退時間", type: "time", persist: true, required: true, drawTime: { hour: [1215, 1230], minute: [1374, 1230] } },
     ],
   },
   {
     title: "工作內容（下午）",
     fields: [
-      { id: "afternoonWork", label: "下午工作內容", type: "textarea", persist: false, draw: { x: 168, y: 1512, w: 930, h: 280, size: 48, lineHeight: 60 } },
-      { id: "afternoonArrive", label: "下午到勤時間", type: "time", persist: true, drawTime: { hour: [1215, 1462], minute: [1374, 1462] } },
-      { id: "afternoonLeave", label: "下午離退時間", type: "time", persist: true, drawTime: { hour: [1215, 1758], minute: [1374, 1758] } },
+      { id: "afternoonWork", label: "下午工作內容", type: "textarea", persist: false, required: true, draw: { x: 168, y: 1512, w: 930, h: 280, size: 48, lineHeight: 60 } },
+      { id: "afternoonArrive", label: "下午到勤時間", type: "time", persist: true, required: true, drawTime: { hour: [1215, 1462], minute: [1374, 1462] } },
+      { id: "afternoonLeave", label: "下午離退時間", type: "time", persist: true, required: true, drawTime: { hour: [1215, 1758], minute: [1374, 1758] } },
+    ],
+  },
+  {
+    title: "早退理由",
+    fields: [
+      { id: "earlyLeaveReason", label: "早退理由", type: "textarea", persist: false, large: true, draw: { x: 1020, y: 1628, w: 455, h: 126, size: 30, lineHeight: 38, align: "right" } },
     ],
   },
 ];
 
 const allFields = fieldGroups.flatMap((group) => group.fields);
-const dailyFieldIds = new Set(allFields.filter((field) => !field.persist).map((field) => field.id));
+const requiredFields = allFields.filter((field) => field.required);
 
 const form = document.querySelector("#logForm");
 const canvas = document.querySelector("#previewCanvas");
@@ -64,7 +70,6 @@ const context = canvas.getContext("2d");
 const statusText = document.querySelector("#statusText");
 const downloadButton = document.querySelector("#downloadPdf");
 const printButton = document.querySelector("#printPdf");
-const clearDailyButton = document.querySelector("#clearDaily");
 
 const templateImage = new Image();
 const state = loadState();
@@ -89,6 +94,8 @@ form.addEventListener("input", (event) => {
 });
 
 downloadButton.addEventListener("click", async () => {
+  if (!validateBeforeOutput()) return;
+
   setPdfButtonsDisabled(true);
   statusText.textContent = "正在產生 PDF";
 
@@ -105,6 +112,8 @@ downloadButton.addEventListener("click", async () => {
 });
 
 printButton.addEventListener("click", async () => {
+  if (!validateBeforeOutput()) return;
+
   setPdfButtonsDisabled(true);
   statusText.textContent = "正在準備列印";
 
@@ -118,22 +127,6 @@ printButton.addEventListener("click", async () => {
   } finally {
     setPdfButtonsDisabled(false);
   }
-});
-
-clearDailyButton.addEventListener("click", () => {
-  for (const id of dailyFieldIds) {
-    state[id] = id in DEFAULT_VALUES ? DEFAULT_VALUES[id] : "";
-    const input = form.elements[id];
-    if (input) {
-      if (input.type === "checkbox") {
-        input.checked = Boolean(state[id]);
-      } else {
-        input.value = state[id];
-      }
-    }
-  }
-  setDateDefault();
-  requestPreview();
 });
 
 function buildForm() {
@@ -159,6 +152,9 @@ function buildForm() {
       label.textContent = field.label;
 
       const input = createInput(field);
+      if (field.required) {
+        input.required = true;
+      }
       wrapper.append(label, input);
 
       if (field.type === "text" || field.type === "date" || field.type === "time" || field.type === "checkbox") {
@@ -192,6 +188,9 @@ function createInput(field) {
     textarea.id = field.id;
     textarea.name = field.id;
     textarea.value = value;
+    if (field.large) {
+      textarea.className = "textarea-large";
+    }
     return textarea;
   }
 
@@ -206,6 +205,50 @@ function createInput(field) {
     input.placeholder = "HH:MM";
   }
   return input;
+}
+
+function validateBeforeOutput() {
+  const missingLabels = [];
+
+  for (const field of requiredFields) {
+    if (!normalize(state[field.id])) {
+      missingLabels.push(field.label);
+    }
+  }
+
+  if (isEarlyAfternoonLeave() && !normalize(state.earlyLeaveReason)) {
+    missingLabels.push("早退理由");
+  }
+
+  if (missingLabels.length === 0) {
+    return true;
+  }
+
+  const message = `請填寫必填欄位：${missingLabels.join("、")}`;
+  statusText.textContent = message;
+  window.alert(message);
+
+  const firstMissingField = allFields.find((field) => missingLabels.includes(field.label));
+  if (firstMissingField) {
+    form.elements[firstMissingField.id]?.focus();
+  } else if (missingLabels.includes("早退理由")) {
+    form.elements.earlyLeaveReason?.focus();
+  }
+
+  return false;
+}
+
+function isEarlyAfternoonLeave() {
+  const leaveMinutes = parseTimeToMinutes(state.afternoonLeave);
+  return leaveMinutes !== null && leaveMinutes < 16 * 60 + 50;
+}
+
+function parseTimeToMinutes(value) {
+  const match = normalize(value).match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (!match) {
+    return null;
+  }
+  return Number(match[1]) * 60 + Number(match[2]);
 }
 
 function requestPreview() {

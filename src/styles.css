@@ -126,6 +126,10 @@ p {
   resize: vertical;
 }
 
+.field textarea.textarea-large {
+  min-height: 168px;
+}
+
 .field-row {
   display: grid;
   gap: 10px;
@@ -143,18 +147,12 @@ p {
   background: #ece8df;
   border-bottom: 1px solid #d8d4ca;
   display: flex;
-  justify-content: space-between;
   padding: 12px 18px;
 }
 
 #statusText {
   color: #495057;
   font-size: 14px;
-}
-
-#clearDaily {
-  background: transparent;
-  color: #1f2933;
 }
 
 .print-frame {
