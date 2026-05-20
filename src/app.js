@@ -41,16 +41,16 @@ const fieldGroups = [
     title: "工作內容（上午）",
     fields: [
       { id: "morningWork", label: "上午工作內容", type: "textarea", persist: false, required: true, draw: { x: 168, y: 996, w: 930, h: 280, size: 48, lineHeight: 60 } },
-      { id: "morningArrive", label: "上午到勤時間", type: "time", persist: true, required: true, drawTime: { hour: [1215, 942], minute: [1374, 942] } },
-      { id: "morningLeave", label: "上午離退時間", type: "time", persist: true, required: true, drawTime: { hour: [1215, 1230], minute: [1374, 1230] } },
+      { id: "morningArrive", label: "上午到勤時間", type: "time", persist: false, required: true, drawTime: { hour: [1215, 942], minute: [1374, 942] } },
+      { id: "morningLeave", label: "上午離退時間", type: "time", persist: false, required: true, drawTime: { hour: [1215, 1230], minute: [1374, 1230] } },
     ],
   },
   {
     title: "工作內容（下午）",
     fields: [
       { id: "afternoonWork", label: "下午工作內容", type: "textarea", persist: false, required: true, draw: { x: 168, y: 1512, w: 930, h: 280, size: 48, lineHeight: 60 } },
-      { id: "afternoonArrive", label: "下午到勤時間", type: "time", persist: true, required: true, drawTime: { hour: [1215, 1462], minute: [1374, 1462] } },
-      { id: "afternoonLeave", label: "下午離退時間", type: "time", persist: true, required: true, drawTime: { hour: [1215, 1758], minute: [1374, 1758] } },
+      { id: "afternoonArrive", label: "下午到勤時間", type: "time", persist: false, required: true, drawTime: { hour: [1215, 1462], minute: [1374, 1462] } },
+      { id: "afternoonLeave", label: "下午離退時間", type: "time", persist: false, required: true, drawTime: { hour: [1215, 1758], minute: [1374, 1758] } },
     ],
   },
   {
@@ -390,7 +390,8 @@ function setDateDefault() {
 
 function loadState() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    return { name: stored.name || "" };
   } catch {
     return {};
   }
