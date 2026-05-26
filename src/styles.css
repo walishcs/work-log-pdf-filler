@@ -22,17 +22,32 @@ select {
 }
 
 button {
+  align-items: center;
   border: 1px solid #1f2933;
   border-radius: 6px;
   background: #1f2933;
   color: #fff;
   cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
   min-height: 38px;
   padding: 0 14px;
 }
 
 button:hover {
   background: #111827;
+}
+
+button svg {
+  fill: none;
+  flex: 0 0 auto;
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 18px;
 }
 
 .app-shell {

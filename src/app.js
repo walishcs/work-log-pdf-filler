@@ -11,14 +11,15 @@ const FONT_STACK = '"BiauKai", "DFKai-SB", "KaiTi", "KaiTi TC", "STKaiti", "Kait
 const DEFAULT_VALUES = {
   superior: "無",
   handover: "無",
-  morningWork: "- 櫃檯勤務",
+  morningWork: "櫃檯勤務",
   morningArrive: "07:50",
   morningLeave: "12:00",
-  afternoonWork: "- 櫃檯勤務",
+  afternoonWork: "櫃檯勤務",
   afternoonArrive: "13:00",
   afternoonLeave: "16:50",
 };
 
+const WORK_CONTENT_FIELD_IDS = new Set(["morningWork", "afternoonWork"]);
 const weekdayNames = ["日", "一", "二", "三", "四", "五", "六"];
 
 const fieldGroups = [
@@ -274,7 +275,7 @@ function renderPreview() {
   for (const field of allFields) {
     if (field.type === "checkbox") continue;
 
-    const value = normalize(state[field.id]);
+    const value = getDrawValue(field);
     if (!value || field.id === "date") continue;
 
     if (field.draw) {
@@ -316,6 +317,27 @@ function getTimeDrawValue(fieldId, value) {
     return "值:班";
   }
   return value;
+}
+
+function getDrawValue(field) {
+  const value = normalize(state[field.id]);
+  if (WORK_CONTENT_FIELD_IDS.has(field.id)) {
+    return formatWorkContent(value);
+  }
+  return value;
+}
+
+function formatWorkContent(value) {
+  return value
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return "";
+      return /^[-*•]\s*/.test(trimmed) ? trimmed : `- ${trimmed}`;
+    })
+    .join("\n")
+    .trim();
 }
 
 function drawTextBox(text, options) {
