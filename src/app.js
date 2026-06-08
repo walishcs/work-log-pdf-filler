@@ -71,6 +71,7 @@ const context = canvas.getContext("2d");
 const statusText = document.querySelector("#statusText");
 const downloadButton = document.querySelector("#downloadPdf");
 const printButton = document.querySelector("#printPdf");
+const secondaryPrintButtons = document.querySelectorAll("[data-print-pdf]");
 
 const templateImage = new Image();
 const state = loadState();
@@ -128,6 +129,26 @@ printButton.addEventListener("click", async () => {
   } finally {
     setPdfButtonsDisabled(false);
   }
+});
+
+secondaryPrintButtons.forEach((button) => {
+  button.addEventListener("click", async () => {
+    const pdfPath = button.dataset.printPdf;
+    if (!pdfPath) return;
+
+    setPdfButtonsDisabled(true);
+    statusText.textContent = "正在準備列印";
+
+    try {
+      await printPdfUrl(pdfPath, button.dataset.printTitle || "列印 PDF");
+      statusText.textContent = "列印視窗已開啟";
+    } catch (error) {
+      console.error(error);
+      statusText.textContent = "列印 PDF 失敗";
+    } finally {
+      setPdfButtonsDisabled(false);
+    }
+  });
 });
 
 function buildForm() {
@@ -467,8 +488,12 @@ function downloadPdfBlob(blob) {
 }
 
 function printPdfBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  return printPdfUrl(url, "列印工作日誌 PDF", () => URL.revokeObjectURL(url));
+}
+
+function printPdfUrl(url, title, cleanupUrl = () => {}) {
   return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(blob);
     const frame = document.createElement("iframe");
     let settled = false;
     let cleanupTimer;
@@ -477,12 +502,12 @@ function printPdfBlob(blob) {
       window.clearTimeout(cleanupTimer);
       cleanupTimer = window.setTimeout(() => {
         frame.remove();
-        URL.revokeObjectURL(url);
+        cleanupUrl();
       }, 1000);
     };
 
     frame.className = "print-frame";
-    frame.title = "列印工作日誌 PDF";
+    frame.title = title;
     frame.onload = () => {
       try {
         const frameWindow = frame.contentWindow;
@@ -522,6 +547,9 @@ function printPdfBlob(blob) {
 function setPdfButtonsDisabled(disabled) {
   downloadButton.disabled = disabled;
   printButton.disabled = disabled;
+  secondaryPrintButtons.forEach((button) => {
+    button.disabled = disabled;
+  });
 }
 
 function canvasToPngBytes(sourceCanvas) {

@@ -151,6 +151,39 @@ p {
   grid-template-columns: 1fr 1fr;
 }
 
+.secondary-print {
+  align-items: center;
+  border-top: 1px solid #eee9df;
+  color: #7a7165;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 14px;
+}
+
+.secondary-print-button {
+  background: transparent;
+  border: 0;
+  color: #6b7280;
+  min-height: auto;
+  padding: 2px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.secondary-print-button:hover {
+  background: transparent;
+  color: #1f2933;
+}
+
+.secondary-print-button:disabled {
+  color: #aaa39a;
+  cursor: not-allowed;
+  text-decoration-color: #c9c2b8;
+}
+
 .preview-pane {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
